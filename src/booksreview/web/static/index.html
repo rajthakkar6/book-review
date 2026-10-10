@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Books Review</title>
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#fff; --text:#16181d; --muted:#5d6572; --border:#dde1e7;
+  --accent:#2457d6; --accent-ink:#fff; --ok:#17794a; --ok-bg:#e3f4ea; --warn:#8a5a00; --warn-bg:#fdf1d6;
+  --bad:#b3261e; --bad-bg:#fbe5e3; --info-bg:#e6edfb; --code-bg:#f0f2f5;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1115; --surface:#181b21; --text:#e8eaee; --muted:#9aa3b2; --border:#2a2f38;
+  --accent:#6f95f5; --accent-ink:#0b1020; --ok:#5fd397; --ok-bg:#12301f; --warn:#f0c26a; --warn-bg:#352a0e;
+  --bad:#ff8a80; --bad-bg:#3a1714; --info-bg:#1a2540; --code-bg:#20242c;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+header h1{font-size:16px;margin:0 8px 0 0}
+.pill{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--code-bg);color:var(--muted)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+nav{display:flex;gap:4px;padding:8px 16px 0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto}
+nav button{border:0;background:none;color:var(--muted);padding:8px 12px;cursor:pointer;border-bottom:2px solid transparent;font:inherit;white-space:nowrap}
+nav button[aria-selected=true]{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+main{max-width:1180px;margin:0 auto;padding:16px}
+section[hidden]{display:none}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.card h2{font-size:14px;margin:0 0 12px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+input,select,textarea{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;min-width:0}
+textarea{width:100%;min-height:56px}
+button.btn{font:inherit;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:7px 14px;border-radius:6px;cursor:pointer}
+button.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button.btn:disabled{opacity:.5;cursor:not-allowed}
+button.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,nav button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+tr.click{cursor:pointer} tr.click:hover{background:var(--code-bg)}
+.scroll{overflow-x:auto}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--code-bg);color:var(--muted);white-space:nowrap}
+.badge.ok{background:var(--ok-bg);color:var(--ok)} .badge.bad{background:var(--bad-bg);color:var(--bad)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)} .badge.info{background:var(--info-bg);color:var(--accent)}
+.muted{color:var(--muted)} .small{font-size:12px}
+code,pre{font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:10px;border-radius:6px;overflow:auto;max-height:420px;margin:6px 0;white-space:pre-wrap;word-break:break-word}
+.ids{display:flex;flex-wrap:wrap;gap:4px}.ids code{background:var(--code-bg);padding:0 5px;border-radius:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.stat{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.stat b{display:block;font-size:18px;font-variant-numeric:tabular-nums}
+.vr{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--surface)}
+.vr h3{margin:0 0 6px;font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.msg{padding:8px 12px;border-radius:6px;margin-top:10px;background:var(--info-bg)} .msg.err{background:var(--bad-bg);color:var(--bad)}
+.tl{border-left:2px solid var(--border);margin-left:6px}
+.ev{padding:4px 0 4px 12px}.ev summary{cursor:pointer}
+.chat{display:flex;flex-direction:column;gap:10px;min-height:120px;max-height:62vh;overflow:auto;padding:4px}
+.bub{max-width:88%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);white-space:pre-wrap;word-break:break-word}
+.bub.user{align-self:flex-end;background:var(--info-bg)} .bub.bot{align-self:flex-start;background:var(--surface)}
+.bub .meta{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.warn-box{margin-top:8px;padding:6px 10px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:12px;white-space:normal}
+.chip{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}
+.chip:hover{background:var(--code-bg)}
+@media (max-width:640px){main{padding:12px}.card{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Books Review</h1>
+  <span class="pill" id="p-model">model …</span>
+  <span class="pill" id="p-key">key …</span>
+  <span class="pill" id="p-busy" hidden>job running</span>
+  <span class="muted small">Local only. Reads the same files the CLI writes to <code>logs/</code>.</span>
+</header>
+<nav role="tablist" id="tabs"></nav>
+<main>
+  <section id="t-run">
+    <div class="card"><h2>1. Ledger</h2>
+      <div class="row">
+        <label>Ledger<select id="ledger"></select></label>
+        <label>Scenario<select id="gen-scn"><option>standard</option><option>clean</option><option>injection</option></select></label>
+        <label>Seed<input id="gen-seed" type="number" value="7" min="0" max="10000" style="width:90px"></label>
+        <button class="btn" id="gen">Generate new ledger</button>
+        <button class="btn" id="det-eval">Check detectors (free)</button>
+      </div>
+      <div id="det-out"></div>
+    </div>
+    <div class="card"><h2>2. Review with the model</h2>
+      <label>Question (optional)<textarea id="question" placeholder="Review the ledger. Explain every anomaly the detectors return."></textarea></label>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="review">Run review</button>
+        <span class="muted small">Uses your API key. About 14k tokens and 20 seconds with gpt-4o-mini.</span></div>
+      <div id="job-out"></div>
+    </div>
+    <div class="card"><h2>3. Live evaluation</h2>
+      <div class="row">
+        <fieldset style="border:0;padding:0;margin:0"><legend class="muted small">Scenarios</legend>
+          <label style="flex-direction:row;gap:6px"><input type="checkbox" class="scn" value="standard" checked> standard</label>
+          <label style="flex-direction:row;gap:6px"><input type="checkbox" class="scn" value="clean"> clean</label>
+          <label style="flex-direction:row;gap:6px"><input type="checkbox" class="scn" value="injection"> injection</label></fieldset>
+        <label>Seeds (comma-separated)<input id="ev-seeds" value="7" style="width:130px"></label>
+        <label>Runs per seed<input id="ev-runs" type="number" value="3" min="1" max="10" style="width:80px"></label>
+        <label style="flex-direction:row;gap:6px;align-items:center"><input type="checkbox" id="ev-judge"> blind judge</label>
+        <button class="btn primary" id="live-eval">Run live eval</button>
+      </div>
+      <div class="muted small" id="ev-estimate"></div>
+      <div id="eval-job-out"></div>
+    </div>
+  </section>
+
+  <section id="t-ask" hidden>
+    <div class="card"><h2>Ask the model about a ledger</h2>
+      <div class="row" style="margin-bottom:10px">
+        <label>Ledger<select id="ask-ledger"></select></label>
+        <button class="btn" id="ask-new">New conversation</button>
+        <span class="muted small">The model can look things up with the same five read-only tools. It cannot change anything.</span>
+      </div>
+      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="row" id="ask-suggest" style="margin:10px 0"></div>
+      <label>Your question<textarea id="ask-q" maxlength="1000" placeholder="e.g. Which vendors look riskiest, and why? (Enter to send, Shift+Enter for a new line)"></textarea></label>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="ask-send">Ask</button>
+        <span class="muted small">Answers are free text written by the model and are not verified like the report. Numbers that no tool returned are flagged.</span></div>
+    </div>
+  </section>
+
+  <section id="t-runs" hidden><div class="card"><h2>Past reviews</h2><div class="scroll" id="runs-list"></div></div></section>
+  <section id="t-report" hidden><div id="report"></div></section>
+  <section id="t-trace" hidden><div id="trace"></div></section>
+  <section id="t-evals" hidden>
+    <div class="card"><h2>Evaluation runs</h2><div class="scroll" id="evals-list"></div></div>
+    <div id="eval-detail"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+// DOM builder. Text is always set via textContent, so ledger text (vendor names, injected strings) can never run as HTML.
+function el(tag, attrs, ...kids){
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs || {})){
+    if (k === "class") n.className = v; else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) n.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return n;
+}
+const api = async (path, opts) => {
+  const r = await fetch(path, opts && opts.body ? {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(opts.body)} : opts);
+  const text = await r.text(); let data; try { data = JSON.parse(text) } catch { data = {detail:text} }
+  if (!r.ok) throw new Error(data.detail ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail)) : r.statusText);
+  return data;
+};
+const inr = p => "₹ " + (p/100).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmt = v => typeof v === "number" ? (Number.isInteger(v) ? v.toLocaleString() : (Math.abs(v) < 10 ? v.toFixed(3) : v.toFixed(1))) : v == null ? "–" : String(v);
+const when = ts => ts ? new Date(ts).toLocaleString() : "–";
+const statusClass = s => s === "ok" ? "ok" : (s === "budget_exceeded" || s === "llm_error") ? "warn" : "bad";
+const badge = (t, cls) => el("span", {class:"badge " + (cls || "")}, t);
+const msg = (t, err) => el("div", {class:"msg" + (err ? " err" : "")}, t);
+
+// ---- tabs
+const TABS = [["run","Run"],["ask","Ask"],["runs","Past reviews"],["report","Report"],["trace","Trace"],["evals","Evals"]];
+const tabs = $("tabs");
+function show(name){
+  for (const [id] of TABS){ $("t-"+id).hidden = id !== name; tabs.querySelector(`[data-t=${id}]`).setAttribute("aria-selected", id === name); }
+  if (name === "runs") loadRuns(); if (name === "evals") loadEvals();
+}
+for (const [id,label] of TABS) tabs.append(el("button", {role:"tab", "data-t":id, onclick:()=>show(id)}, label));
+
+// ---- header status
+async function loadStatus(){
+  try{
+    const s = await api("/api/status");
+    $("p-model").textContent = "model: " + s.model;
+    $("p-key").textContent = s.api_key_set ? "API key set" : "API key missing";
+    $("p-key").className = "pill " + (s.api_key_set ? "ok" : "bad");
+    $("p-busy").hidden = !s.busy;
+  }catch(e){ $("p-model").textContent = "server unreachable"; }
+}
+
+// ---- run tab
+async function loadLedgers(select){
+  const ls = await api("/api/ledgers"); const cur = $("ledger").value;
+  const opts = () => ls.map(l => el("option", {value:l.id}, l.id + (l.has_labels ? "" : " (no labels)")));
+  $("ledger").replaceChildren(...opts());
+  const askCur = $("ask-ledger").value; $("ask-ledger").replaceChildren(...opts());
+  if (askCur && ls.some(l => l.id === askCur)) $("ask-ledger").value = askCur;
+  if (!ls.length) $("ledger").append(el("option", {value:""}, "none: generate one"));
+  const pick = select || cur; if (pick && [...$("ledger").options].some(o => o.value === pick)) $("ledger").value = pick;
+}
+$("gen").onclick = async () => {
+  $("gen").disabled = true;
+  try{ const r = await api("/api/generate", {body:{scenario:$("gen-scn").value, seed:+$("gen-seed").value}}); await loadLedgers(r.ledger); $("det-out").replaceChildren(msg("Generated " + r.ledger)); }
+  catch(e){ $("det-out").replaceChildren(msg(e.message, true)); } finally { $("gen").disabled = false; }
+};
+$("det-eval").onclick = async () => {
+  try{
+    const r = await api("/api/eval/detectors", {body:{ledger:$("ledger").value}});
+    const rows = Object.entries(r).map(([k,v]) => el("tr", {}, el("td", {}, k), el("td", {class:"num"}, v.seeded), el("td", {class:"num"}, v.found), el("td", {class:"num"}, fmt(v.recall)), el("td", {class:"num"}, fmt(v.precision))));
+    $("det-out").replaceChildren(el("div", {class:"scroll"}, el("table", {}, el("tr", {}, ...["detector","seeded","found","recall","precision"].map(h => el("th", {}, h))), rows)));
+  }catch(e){ $("det-out").replaceChildren(msg(e.message, true)); }
+};
+async function poll(jid, out, onDone){
+  const t0 = Date.now();
+  for(;;){
+    const j = await api("/api/jobs/" + jid);
+    if (j.status === "running"){ out.replaceChildren(msg(`Running… ${Math.round((Date.now()-t0)/1000)}s`)); loadStatus(); await new Promise(r => setTimeout(r, 1500)); continue; }
+    loadStatus();
+    if (j.status === "error") out.replaceChildren(msg(j.error, true)); else onDone(j.result);
+    return;
+  }
+}
+$("review").onclick = async () => {
+  if (!$("ledger").value) return $("job-out").replaceChildren(msg("Pick or generate a ledger first.", true));
+  $("review").disabled = true;
+  try{
+    const j = await api("/api/review", {body:{ledger:$("ledger").value, question:$("question").value || null}});
+    await poll(j.id, $("job-out"), r => { $("job-out").replaceChildren(msg("Finished: " + r.status)); if (r.run) openReport(r.run); });
+  }catch(e){ $("job-out").replaceChildren(msg(e.message, true)); } finally { $("review").disabled = false; }
+};
+const evalBody = () => ({scenarios:[...document.querySelectorAll(".scn:checked")].map(c => c.value),
+  seeds:$("ev-seeds").value.split(",").map(s => parseInt(s,10)).filter(n => !isNaN(n)), runs:+$("ev-runs").value, judge:$("ev-judge").checked});
+function estimate(){
+  const b = evalBody(), n = b.scenarios.length * b.seeds.length * b.runs;
+  const heavy = b.scenarios.filter(s => s !== "clean").length * b.seeds.length * b.runs;
+  $("ev-estimate").textContent = `${n} runs, roughly ${Math.round(heavy*14 + (n-heavy)*2)}k tokens${b.judge ? " plus judge calls" : ""}, about ${Math.round((heavy*21 + (n-heavy)*3)/60)} min.`;
+}
+document.querySelectorAll("#t-run .card:last-child input").forEach(i => i.addEventListener("input", estimate)); estimate();
+$("live-eval").onclick = async () => {
+  const b = evalBody();
+  if (!b.scenarios.length || !b.seeds.length) return $("eval-job-out").replaceChildren(msg("Choose a scenario and at least one seed.", true));
+  if (!confirm($("ev-estimate").textContent + "\nThis spends API tokens. Continue?")) return;
+  $("live-eval").disabled = true;
+  try{
+    const j = await api("/api/eval/live", {body:b});
+    await poll(j.id, $("eval-job-out"), r => { $("eval-job-out").replaceChildren(msg("Finished.")); openEval(r.saved_to); });
+  }catch(e){ $("eval-job-out").replaceChildren(msg(e.message, true)); } finally { $("live-eval").disabled = false; }
+};
+
+// ---- ask
+let askCid = null, askBusy = false;
+const SUGGEST = ["Which vendors are riskiest, and why?", "List the duplicate invoices.", "Explain the payment splits.", "Is anything unusual about vendor V025?"];
+SUGGEST.forEach(q => $("ask-suggest").append(el("button", {class:"chip", onclick:()=>{ $("ask-q").value = q; sendAsk(); }}, q)));
+$("ask-new").onclick = () => { askCid = null; $("chat").replaceChildren(); };
+$("ask-ledger").onchange = () => { askCid = null; $("chat").replaceChildren(); };
+$("ask-send").onclick = sendAsk;
+$("ask-q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendAsk(); } });
+function bubble(cls, ...kids){ const b = el("div", {class:"bub " + cls}, ...kids); $("chat").append(b); b.scrollIntoView({block:"nearest"}); return b; }
+async function sendAsk(){
+  const q = $("ask-q").value.trim();
+  if (!q || askBusy) return;
+  if (!$("ask-ledger").value) return bubble("bot", "Pick or generate a ledger first (Run tab).");
+  askBusy = true; $("ask-send").disabled = true; $("ask-q").value = "";
+  bubble("user", q);
+  const wait = bubble("bot", el("span", {class:"muted"}, "Thinking…"));
+  try{
+    const j = await api("/api/ask", {body:{ledger:$("ask-ledger").value, question:q, conversation_id:askCid}});
+    const t0 = Date.now();
+    for(;;){
+      const s = await api("/api/jobs/" + j.id);
+      if (s.status === "running"){ wait.firstChild.textContent = `Thinking… ${Math.round((Date.now()-t0)/1000)}s`; await new Promise(r => setTimeout(r, 1000)); continue; }
+      if (s.status === "error") throw new Error(s.error);
+      const r = s.result; askCid = r.conversation_id;
+      const meta = el("div", {class:"meta"}, badge("model-written, unverified", "warn"),
+        r.status !== "ok" ? badge(r.status, "bad") : null,
+        r.tools.length ? el("details", {}, el("summary", {class:"small muted"}, `${r.tools.length} tool call${r.tools.length > 1 ? "s" : ""}`),
+          el("div", {class:"small"}, r.tools.map(t => el("div", {}, el("code", {}, t.name + " " + JSON.stringify(t.arguments)), t.ok ? "" : " (error)")))) : badge("no tools used", ""),
+        el("span", {class:"muted small"}, `${fmt(r.stats.tokens)} tokens · ${fmt(r.stats.seconds)}s`),
+        r.run ? el("button", {class:"chip", onclick:()=>openTrace(r.run)}, "trace") : null);
+      wait.replaceChildren(r.answer || "(no answer)", meta);
+      if (r.unsupported_numbers.length) wait.append(el("div", {class:"warn-box"}, "These numbers in the answer were not returned by any tool, so treat them with caution: " + r.unsupported_numbers.join(", ")));
+      break;
+    }
+  }catch(e){ wait.replaceChildren(el("span", {style:"color:var(--bad)"}, e.message)); }
+  finally{ askBusy = false; $("ask-send").disabled = false; loadStatus(); $("ask-q").focus(); }
+}
+
+// ---- past reviews
+async function loadRuns(){
+  const runs = await api("/api/runs");
+  $("runs-list").replaceChildren(runs.length ? el("table", {},
+    el("tr", {}, ...["When","Model","Status","Findings","Vendors","Tokens","Seconds"].map(h => el("th", {}, h))),
+    runs.map(r => el("tr", {class:"click", tabindex:0, onclick:()=>openReport(r.id), onkeydown:e => e.key === "Enter" && openReport(r.id)},
+      el("td", {}, when(r.ts)), el("td", {}, r.model || "–"),
+      el("td", {}, r.complete ? [badge(r.status, statusClass(r.status)), r.partial ? [" ", badge("partial", "warn")] : null] : badge("incomplete", "bad")),
+      el("td", {class:"num"}, fmt(r.findings)), el("td", {class:"num"}, fmt(r.vendor_risks)), el("td", {class:"num"}, fmt(r.tokens)), el("td", {class:"num"}, fmt(r.seconds))))
+  ) : el("p", {class:"muted"}, "No reviews yet. Run one from the Run tab."));
+}
+
+// ---- report
+let current = null;
+async function openReport(id){
+  show("report"); $("report").replaceChildren(el("p", {class:"muted"}, "Loading…"));
+  try{ current = await api("/api/runs/" + id); renderReport(); }
+  catch(e){ $("report").replaceChildren(msg(e.message, true)); }
+}
+function renderReport(){
+  const {report, stats, start, id} = current;
+  const root = el("div", {});
+  root.append(el("div", {class:"card"},
+    el("div", {class:"row", style:"justify-content:space-between"},
+      el("div", {}, el("h2", {style:"margin:0 0 4px"}, "Review ", el("code", {}, id)),
+        el("div", {class:"muted small"}, when(start.ts), " · model ", start.model || "–", " · ledger ", start.ledger || "–")),
+      el("div", {class:"row"}, badge(report.status, statusClass(report.status)), report.partial ? badge("partial: text written by code", "warn") : null,
+        el("button", {class:"btn", onclick:()=>openTrace(id)}, "Open trace"))),
+    el("p", {}, report.summary || ""),
+    el("div", {class:"grid"},
+      stat("Findings", report.findings.length), stat("Vendors flagged", report.vendor_risks.length),
+      stat("Tokens", fmt(stats.tokens)), stat("Seconds", fmt(stats.seconds)), stat("Tool calls", fmt(stats.tool_calls)),
+      stat("Model-written findings", stats.explanations ? `${stats.explanations.model}/${stats.explanations.total}` : "–"),
+      stat("Vendor text", stats.notes || "–"))));
+  // vendor risks
+  if (report.vendor_risks.length){
+    const card = el("div", {class:"card"}, el("h2", {}, "Vendors with several kinds of problems (ranked)"));
+    for (const v of report.vendor_risks)
+      card.append(el("div", {class:"vr"},
+        el("h3", {}, v.vendor_id, badge(v.risk, v.risk === "high" ? "bad" : "warn"), badge(v.finding_types.length + " types", "info"),
+          badge(v.text_source === "model" ? "model-written" : "template", v.text_source === "model" ? "ok" : "")),
+        el("div", {class:"ids"}, v.finding_types.map(t => badge(t))),
+        el("p", {style:"margin:8px 0 4px"}, el("b", {}, "Next step: "), v.action),
+        el("p", {class:"muted", style:"margin:0 0 6px"}, v.rationale),
+        el("div", {class:"ids"}, v.evidence_ids.map(i => el("code", {}, i)))));
+    root.append(card);
+  }
+  // findings with filters
+  const types = [...new Set(report.findings.map(f => f.type))].sort();
+  const fType = el("select", {}, el("option", {value:""}, "all types"), types.map(t => el("option", {value:t}, t)));
+  const fSrc = el("select", {}, el("option", {value:""}, "any text source"), el("option", {value:"model"}, "model-written"), el("option", {value:"template"}, "template"));
+  const fText = el("input", {type:"search", placeholder:"search id or text", "aria-label":"search findings"});
+  const count = el("span", {class:"muted small"});
+  const tbody = el("tbody", {});
+  const draw = () => {
+    const q = fText.value.toLowerCase();
+    const rows = report.findings.filter(f => (!fType.value || f.type === fType.value) && (!fSrc.value || f.explanation_source === fSrc.value) &&
+      (!q || f.evidence_ids.join(" ").toLowerCase().includes(q) || f.explanation.toLowerCase().includes(q)));
+    count.textContent = `${rows.length} of ${report.findings.length}`;
+    tbody.replaceChildren(...rows.map(f => el("tr", {}, el("td", {}, badge(f.type)), el("td", {}, el("div", {class:"ids"}, f.evidence_ids.map(i => el("code", {}, i)))),
+      el("td", {class:"num"}, inr(f.amount_paise)), el("td", {}, f.explanation, " ", f.explanation_source === "template" ? badge("template") : null))));
+  };
+  [fType, fSrc].forEach(n => n.addEventListener("change", draw)); fText.addEventListener("input", draw); draw();
+  root.append(el("div", {class:"card"}, el("h2", {}, "Findings"), el("div", {class:"row", style:"margin-bottom:10px"}, fType, fSrc, fText, count),
+    el("div", {class:"scroll"}, el("table", {}, el("tr", {}, ...["Type","Evidence","Amount","Explanation"].map(h => el("th", {}, h))), tbody))));
+  $("report").replaceChildren(root);
+}
+const stat = (label, value) => el("div", {class:"stat"}, el("span", {class:"muted small"}, label), el("b", {}, value));
+
+// ---- trace
+async function openTrace(id){
+  show("trace"); $("trace").replaceChildren(el("p", {class:"muted"}, "Loading…"));
+  try{
+    const ev = await api(`/api/runs/${id}/trace`);
+    const kinds = [...new Set(ev.map(e => e.kind))];
+    const sel = el("select", {"aria-label":"filter by event kind"}, el("option", {value:""}, "all events"), kinds.map(k => el("option", {value:k}, k)));
+    const list = el("div", {class:"tl"});
+    const draw = () => list.replaceChildren(...ev.filter(e => !sel.value || e.kind === sel.value).map(e => {
+      const {seq, ts, t, kind, ...rest} = e;
+      const hint = kind === "tool_call" ? `${e.name} ${JSON.stringify(e.arguments)}` : kind === "llm_request" ? `${(e.messages||[]).length} messages` :
+        kind === "llm_response" ? `${e.tokens} tokens, ${e.seconds}s${(e.tool_calls||[]).length ? ", " + e.tool_calls.length + " tool calls" : ""}` :
+        kind === "tool_result" ? `${e.name} ${e.raw_chars} chars${e.is_error ? " ERROR" : ""}` : "";
+      return el("details", {class:"ev"}, el("summary", {}, el("span", {class:"muted"}, `#${seq} +${t}s `), badge(kind, /error|refused|exceeded/.test(kind) ? "bad" : ""), " ", hint),
+        el("pre", {}, JSON.stringify(rest, null, 2)));
+    }));
+    sel.addEventListener("change", draw); draw();
+    $("trace").replaceChildren(el("div", {class:"card"}, el("div", {class:"row", style:"justify-content:space-between"}, el("h2", {style:"margin:0"}, "Trace ", el("code", {}, id)), sel),
+      el("p", {class:"muted small"}, "Every prompt, model reply and tool call, in order. Contains full ledger data."), list));
+  }catch(e){ $("trace").replaceChildren(msg(e.message, true)); }
+}
+
+// ---- evals
+async function loadEvals(){
+  const evs = await api("/api/evals");
+  $("evals-list").replaceChildren(evs.length ? el("table", {}, el("tr", {}, ...["Run","Model","Scenarios","Seeds","Runs/seed"].map(h => el("th", {}, h))),
+    evs.map(e => el("tr", {class:"click", tabindex:0, onclick:()=>openEval(e.id), onkeydown:x => x.key === "Enter" && openEval(e.id)},
+      el("td", {}, e.id), el("td", {}, (e.config||{}).model || "–"), el("td", {}, e.scenarios.join(", ")), el("td", {}, ((e.config||{}).seeds||[]).join(", ")), el("td", {}, (e.config||{}).runs || "–"))))
+    : el("p", {class:"muted"}, "No evaluations yet."));
+}
+const kvTable = obj => el("table", {}, Object.entries(obj).map(([k,v]) => el("tr", {}, el("td", {class:"muted"}, k.replaceAll("_"," ")),
+  el("td", {class:"num"}, typeof v === "object" && v ? JSON.stringify(v) : fmt(v)))));
+async function openEval(id){
+  show("evals");
+  try{
+    const j = await api("/api/evals/" + id); const root = el("div", {});
+    root.append(el("div", {class:"card"}, el("h2", {}, "Evaluation ", el("code", {}, id)), kvTable(j.config)));
+    for (const [name, s] of Object.entries(j.scenarios)){
+      const sc = el("div", {class:"card"}, el("h2", {}, `Scenario: ${name} (${s.runs} runs)`));
+      const bad = Object.entries(s.status_counts).some(([k]) => k !== "ok");
+      sc.append(el("p", {}, "Outcomes: ", Object.entries(s.status_counts).map(([k,v]) => [badge(`${k} ${v}`, k === "ok" ? "ok" : "bad"), " "]), bad ? "" : " all accepted"));
+      const parts = [["Rates", s.rates], ["Findings (code-built: regression guard)", s.findings.agent.overall], ["Code-only baseline", s.findings.baseline.overall],
+        ["Vendor risks", s.vendor_risks.agent], ["Model text", s.explanations], ["Invented numbers in model text", {...s.explanation_faithfulness, examples: undefined}],
+        ["Cost", s.cost]];
+      if (s.text_quality_vs_template) parts.push(["Model vs template (blind judge)", Object.fromEntries(Object.entries(s.text_quality_vs_template).map(([k,v]) => [k, `model ${v.model} · template ${v.template} · tie ${v.tie}`]))]);
+      if (s.injection) parts.push(["Injection", s.injection]);
+      sc.append(el("div", {class:"grid"}, parts.map(([t,o]) => el("div", {class:"stat"}, el("b", {style:"font-size:13px;margin-bottom:6px"}, t), kvTable(Object.fromEntries(Object.entries(o).filter(([,v]) => v !== undefined)))))));
+      sc.append(el("details", {style:"margin-top:12px"}, el("summary", {}, "Per-run detail"), el("div", {class:"scroll"}, el("table", {},
+        el("tr", {}, ...["Seed","Status","Partial","Findings","Tokens","Seconds","Trace"].map(h => el("th", {}, h))),
+        s.runs_detail.map(r => el("tr", {}, el("td", {}, r.seed), el("td", {}, badge(r.status, statusClass(r.status))), el("td", {}, r.partial ? "yes" : ""), el("td", {class:"num"}, r.findings),
+          el("td", {class:"num"}, fmt(r.stats.tokens)), el("td", {class:"num"}, fmt(r.stats.seconds)),
+          el("td", {}, r.stats.trace ? el("button", {class:"btn", onclick:()=>openReport(r.stats.trace.split("/").pop().replace(".jsonl",""))}, "open") : "–")))))));
+      root.append(sc);
+    }
+    $("eval-detail").replaceChildren(root);
+  }catch(e){ $("eval-detail").replaceChildren(msg(e.message, true)); }
+}
+
+show("run"); loadStatus(); loadLedgers().catch(() => {}); setInterval(loadStatus, 5000);
+</script>
+</body>
+</html>

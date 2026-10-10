@@ -22,6 +22,7 @@ from pathlib import Path
 
 from booksreview import config, db, detectors
 from booksreview.agent import run_review
+from booksreview.guards import text_numbers
 from booksreview.baseline import baseline_findings, baseline_vendor_risks, finding_key
 from booksreview.generate import generate
 
@@ -167,14 +168,6 @@ def aggregate_vr(scores: list[dict]) -> dict:
 
 
 # ---- explanation faithfulness: numbers in free text must come from tool output
-_ID = re.compile(r"\b(?:INV|VCH|PAY)-\d+\b|\bV\d{3}\b|\d{4}-\d{2}-\d{2}")
-
-
-def text_numbers(text: str) -> list[str]:
-    text = re.sub(r"(?<=\d),(?=\d)", "", _ID.sub(" ", text))
-    return re.findall(r"\d{3,}", text)
-
-
 def allowed_numbers(ledger) -> set[str]:
     conn = db.connect_ro(ledger)
     blob = json.dumps({n: detectors.run(conn, n) for n in detectors.DETECTORS})

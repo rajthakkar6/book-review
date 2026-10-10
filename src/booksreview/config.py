@@ -56,3 +56,11 @@ TRACE_DIR = Path(os.environ.get("BOOKSREVIEW_TRACE_DIR", "logs"))
 
 # Optional LLM judge for action quality in evals. Prefer a different model than the agent's to avoid self-preference.
 JUDGE_MODEL = os.environ.get("BOOKSREVIEW_JUDGE_MODEL", MODEL_NAME)
+
+# "Ask" chat: a smaller budget than a full review
+ASK_MAX_STEPS = 8
+ASK_MAX_TOOL_CALLS = 12
+ASK_MAX_TOKENS = 40_000
+ASK_MAX_WALL_SECONDS = 90
+ASK_MAX_HISTORY_MESSAGES = 12
+ASK_MAX_QUESTION_CHARS = 1000

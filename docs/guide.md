@@ -136,13 +136,26 @@ BOOKSREVIEW_MODEL=gpt-4o-mini
 
 ### Everyday commands (run from the project folder)
 ```bash
-.venv/bin/python -m pytest              # 70 offline tests, no API key, ~1 second
+.venv/bin/python -m pytest              # 82 offline tests, no API key, ~1 second
 .venv/bin/booksreview generate          # creates data/ledger.db and data/labels.json (seed 7)
 .venv/bin/booksreview eval              # offline: detector recall/precision vs the seeded labels
 .venv/bin/booksreview review            # live: run the agent on data/ledger.db (uses your API key, ~14k tokens)
 .venv/bin/booksreview review --ledger path/to/ledger.db --question "..."   # other ledger or wording
 ```
 If `.venv/bin/booksreview` isn't found, use `.venv/bin/python -m booksreview.cli ...`.
+
+### Web UI (local)
+```bash
+.venv/bin/pip install -e ".[web]"       # once: adds fastapi and uvicorn
+.venv/bin/booksreview serve             # then open http://127.0.0.1:8000
+```
+Tabs: **Run** (pick or generate a ledger, check the detectors for free, run a review, run a live eval),
+**Past reviews** (every saved run), **Report** (summary, ranked risky vendors with their next steps,
+filterable findings table with ₹ amounts and a model-vs-template tag), **Trace** (every prompt, reply and
+tool call, filterable by event kind), **Evals** (saved evaluation results per scenario).
+Only one job runs at a time. Live evals and reviews spend API tokens (a confirmation shows an estimate).
+It binds to `127.0.0.1` only and refuses other hosts, because it has no login and can spend tokens.
+Ledger text (such as vendor names) is shown as plain text, never as HTML.
 
 ### Live evaluation (costs tokens)
 ```bash
@@ -180,9 +193,10 @@ machine); they were parked on purpose until the plain run was verified.
 | `llm.py` | Model interface: OpenAI implementation and a scripted fake for tests |
 | `agent.py` | The LangGraph flow described in section 3, plus the prompts |
 | `trace.py` | The JSONL run log |
-| `cli.py` | `generate`, `review`, `eval` |
+| `cli.py` | `generate`, `review`, `eval`, `serve` |
+| `web/app.py`, `web/static/index.html` | the local web UI (FastAPI backend, one-page front end) |
 | `evals/run_evals.py` | Detector eval and live eval |
-| `tests/` | 70 offline tests (detectors, tools, guards, agent safety, evals) |
+| `tests/` | 82 offline tests (detectors, tools, guards, agent safety, evals) |
 | `docs/design-note.md`, `docs/runbook.md` | Design and what-to-check-when-it-breaks |
 
 ## 8. How we know whether it works (the evals)
@@ -224,6 +238,7 @@ machine); they were parked on purpose until the plain run was verified.
   `[incomplete: ...]`; there is no paging.
 - **Dates and thresholds are tuned to the generator** (approval limit ₹5,00,000, 3-day window, etc.).
   Treat them as configuration in `config.py`, not truths.
+- The web UI is covered by API tests, but its page has only been syntax-checked, not driven in a real browser.
 - Not yet built: Postgres backend, cloud deployment, a different-model comparison, the handoff note.
 
 ## 10. Quick troubleshooting

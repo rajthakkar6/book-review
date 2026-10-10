@@ -48,6 +48,10 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--price-per-mtok", type=float, default=None, help="blended $/1M tokens, for a cost estimate")
     e.add_argument("--model", default=config.MODEL_NAME)
 
+    w = sub.add_parser("serve", help="local web UI (run reviews/evals, browse reports and traces)")
+    w.add_argument("--host", default="127.0.0.1")
+    w.add_argument("--port", type=int, default=8000)
+
     a = p.parse_args(argv)
 
     if a.cmd == "generate":
@@ -59,6 +63,16 @@ def main(argv: list[str] | None = None) -> int:
         report, stats = asyncio.run(run_review(_llm(a.model), a.ledger, a.question or DEFAULT_QUESTION))
         print(json.dumps({"report": report.model_dump(), "stats": stats}, indent=2))
         return 0 if report.status == "ok" else 1
+    elif a.cmd == "serve":
+        if a.host not in ("127.0.0.1", "localhost", "::1"):
+            sys.exit("The UI has no authentication and can spend API tokens: it only binds to loopback.")
+        try:
+            import uvicorn
+            from .web.app import create_app
+        except ImportError:
+            sys.exit('Web UI needs extra packages: pip install -e ".[web]"')
+        print(f"Books review UI: http://{a.host}:{a.port}  (Ctrl+C to stop)")
+        uvicorn.run(create_app(), host=a.host, port=a.port, log_level="warning")
     elif a.cmd == "eval":
         ev, d = _evals(), Path(a.data)
         out = {"detectors": ev.detector_eval(d / "ledger.db", d / "labels.json")}

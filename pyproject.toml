@@ -12,6 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 langsmith = ["langsmith>=0.14"]
+web = ["fastapi>=0.143,<1", "uvicorn>=0.54,<1"]
 dev = ["pytest>=9,<10", "pytest-asyncio>=1,<2"]
 
 [project.scripts]
@@ -23,6 +24,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+booksreview = ["web/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

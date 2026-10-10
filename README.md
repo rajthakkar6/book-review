@@ -16,6 +16,7 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 export OPENAI_API_KEY=...               # live runs only
 .venv/bin/booksreview review            # run the agent
 .venv/bin/booksreview eval --live --runs 3
+.venv/bin/pip install -e ".[web]" && .venv/bin/booksreview serve   # local web UI at http://127.0.0.1:8000
 .venv/bin/python -m pytest              # all tests, offline
 ```
 

@@ -1,5 +1,6 @@
 """Budget, tool allowlist, output truncation and the groundedness check."""
 import json
+import re
 import time
 from collections.abc import Callable
 
@@ -193,3 +194,16 @@ def check_clusters(findings: list[Finding], seen: SeenEvidence) -> list[str]:
             errors.append(f"finding {n}: payment_split must cite exactly the payments of ONE cluster_id "
                           f"(one finding per cluster); {sorted(f.evidence_ids)} is not a single cluster")
     return errors
+
+
+_ID_OR_DATE = re.compile(r"\b(?:INV|VCH|PAY)-\d+\b|\bV\d{3}\b|\d{4}-\d{2}-\d{2}")
+
+
+def text_numbers(text: str) -> list[str]:
+    """Numbers (3+ digits) written in free text, ignoring ids and dates; thousands separators removed."""
+    text = re.sub(r"(?<=\d),(?=\d)", "", _ID_OR_DATE.sub(" ", text))
+    return re.findall(r"\d{3,}", text)
+
+
+def digit_tokens(blob: str) -> set[str]:
+    return set(re.findall(r"\d+", blob))
