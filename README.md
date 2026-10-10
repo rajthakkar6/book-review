@@ -1,9 +1,11 @@
 # books-review-agent
 
-A read-only ledger review agent. Deterministic detectors find anomalies; an LLM orchestrates them
-through a narrow MCP tool layer and explains the results. Every cited id and amount must have been
-returned by a tool in the same run, or the answer is rejected.
+A read-only ledger review agent. Deterministic detectors find anomalies and code turns every detector
+record into a finding; an LLM runs the detectors through a narrow MCP tool layer and writes the
+plain-language explanations. The model can't add, drop or re-price a finding, so a weak or failing
+model degrades the wording, never the coverage or the numbers.
 
+**Start here: [docs/guide.md](docs/guide.md)** (what it does, how to run it, results, limits).
 See [docs/design-note.md](docs/design-note.md) for the design and [docs/runbook.md](docs/runbook.md) for operations.
 
 ## Quick start

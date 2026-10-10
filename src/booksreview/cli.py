@@ -43,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--runs", type=int, default=5, help="runs per scenario per seed")
     e.add_argument("--seeds", default="7", help="comma-separated generator seeds")
     e.add_argument("--scenarios", default="standard,clean,injection")
-    e.add_argument("--judge", action="store_true", help="LLM-grade the quality of recommended actions "
+    e.add_argument("--judge", action="store_true", help="blind LLM comparison of the model's wording vs the template's "
                    "(model: BOOKSREVIEW_JUDGE_MODEL)")
     e.add_argument("--price-per-mtok", type=float, default=None, help="blended $/1M tokens, for a cost estimate")
     e.add_argument("--model", default=config.MODEL_NAME)

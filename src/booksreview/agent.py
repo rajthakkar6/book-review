@@ -31,13 +31,13 @@ SYSTEM_PROMPT = """You are a ledger-review assistant. Deterministic detectors fi
 Procedure
 1. In your FIRST step call run_detector for all five detectors at once: duplicate_invoice, gst_mismatch, unbalanced_voucher, payment_split, amount_outlier. (list_detectors is not needed.)
 2. Records already contain the facts you need. Do NOT call get_invoice, get_voucher or vendor_summary to re-read them; use a lookup only if a fact you need is missing, at most 5 in total.
-3. If a detector reports total_found greater than returned, say so in the summary.
-4. Then give the final answer.
+3. Then give the final answer.
 
 Budget: at most {max_steps} model steps and {max_tool_calls} tool calls.
 
 Final answer: a single JSON object and nothing else:
-{{"explanations":[{{"type":"gst_mismatch","id":"INV-0123","explanation":"Recorded GST 150000 paise differs from the expected 145500 paise."}}],"summary":"<=2 sentences"}}
+{{"explanations":[{{"type":"gst_mismatch","id":"INV-0123","explanation":"Recorded GST 150000 paise differs from the expected 145500 paise."}}]}}
+(The harness writes the summary and all totals; do not include them.)
 - One entry per finding. type = the detector name.
 - id = the record's evidence_id. For payment_split use the records' detail.cluster_id instead, with ONE entry per cluster.
 - explanation: one or two sentences using only facts in that record's detail (expected vs recorded GST, duplicate_of, vendor median, debit vs credit, vendor, ...). Quote numbers exactly as returned. Never calculate, round or invent a number, date or name.
@@ -217,7 +217,11 @@ def build_graph(llm: LLM, client: Client, tools: list[dict], budget: Budget, see
                     unknown_explanation_keys=unknown[:20], incomplete=incomplete, parse_error=err)
         if errors:  # would be a harness bug: never ship ungrounded findings
             return {"status": "insufficient_evidence", "findings": [], "summary": "; ".join(errors), "retry": False}
-        summary = state.get("summary", "")
+        counts: dict[str, int] = {}
+        for f in merged:
+            counts[f.type] = counts.get(f.type, 0) + 1
+        summary = f"{len(merged)} findings: " + ", ".join(f"{t} {n}" for t, n in sorted(counts.items())) + "." \
+            if merged else "No anomalies found by any detector."  # code-written: model-written totals were wrong
         if incomplete:
             summary += " [incomplete: " + "; ".join(incomplete) + "]"
         out = {"findings": merged, "summary": summary, "retry": False,

@@ -224,3 +224,12 @@ async def test_garbage_or_partial_notes_fall_back_to_template(ledger):
 async def test_notes_failure_does_not_break_the_run(ledger):
     report, stats = await run_review(FakeLLM([all_tools(), explain_all, RuntimeError("503")]), ledger)
     assert report.status == "ok" and stats["notes"] == "template" and report.vendor_risks
+
+
+async def test_summary_is_written_by_code_not_the_model(ledger):
+    def lying(messages):
+        r = json.loads(explain_all(messages).content)
+        r["summary"] = "There are 48 findings and the ledger is perfect."
+        return LLMResponse(content=json.dumps(r), tokens=1)
+    report, _ = await run_review(FakeLLM([all_tools(), lying, notes_for]), ledger)
+    assert report.summary.startswith(f"{N_FINDINGS} findings:") and "48" not in report.summary
