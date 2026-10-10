@@ -1,0 +1,25 @@
+# docker compose run --rm generate      -> writes ./data (rw, no network needed)
+# docker compose run --rm review        -> agent; ledger mounted read-only
+# docker compose run --rm eval
+services:
+  generate:
+    build: .
+    command: ["generate", "--out", "/app/data"]
+    volumes: ["./data:/app/data"]
+    network_mode: none
+    profiles: ["tools"]
+  review:
+    build: .
+    command: ["review", "--ledger", "/app/data/ledger.db"]
+    environment: [OPENAI_API_KEY]
+    volumes: ["./data:/app/data:ro"]
+    read_only: true
+    cap_drop: [ALL]
+    profiles: ["tools"]
+  eval:
+    build: .
+    command: ["eval", "--data", "/app/data"]
+    environment: [OPENAI_API_KEY]
+    volumes: ["./data:/app/data:ro"]
+    read_only: true
+    profiles: ["tools"]

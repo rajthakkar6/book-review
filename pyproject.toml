@@ -1,0 +1,30 @@
+[project]
+name = "booksreview"
+version = "0.1.0"
+description = "Read-only, grounded ledger review agent"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=2.3,<3",
+    "langgraph>=1.2,<2",
+    "openai>=3.28,<4",
+    "pydantic>=2.14,<3",
+]
+
+[project.optional-dependencies]
+langsmith = ["langsmith>=0.14"]
+dev = ["pytest>=9,<10", "pytest-asyncio>=1,<2"]
+
+[project.scripts]
+booksreview = "booksreview.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["src", "."]
