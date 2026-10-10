@@ -28,6 +28,8 @@ export OPENAI_API_KEY=...               # live runs only
 
 ## Notes
 - Money is integer paise throughout.
-- Default model `luna-6` (see `config.py`, override with `BOOKSREVIEW_MODEL`) is unverified against a live API. For non-OpenAI endpoints set `OPENAI_BASE_URL`.
+- Configure in `.env` (see `.env.example`): `OPENAI_API_KEY`, `BOOKSREVIEW_MODEL`. Live-tested with `gpt-4o-mini` and `gpt-6-luna` (the latter needs `BOOKSREVIEW_REASONING_EFFORT=none`; non-reasoning models must leave it unset). For non-OpenAI endpoints set `OPENAI_BASE_URL`.
+- Design: code builds every finding from detector records; the model only writes the wording. See the design note.
+- Every run writes a full JSONL trace to `logs/` (disable with `BOOKSREVIEW_TRACE=0`). Optional LangSmith: `LANGSMITH_TRACING=true`.
 - End statuses: `ok`, `refused`, `budget_exceeded`, `insufficient_evidence`, `llm_error`. The CLI exits non-zero unless `ok`.
 - Docker: `docker compose --profile tools run --rm generate`, then `review` or `eval`. The ledger is mounted read-only for the agent.

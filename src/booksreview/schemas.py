@@ -11,6 +11,7 @@ class Finding(BaseModel):
     evidence_ids: list[str] = Field(min_length=1)
     amount_paise: int  # integer paise, never float
     explanation: str = Field(min_length=1)
+    explanation_source: Literal["model", "template"] = "template"  # who wrote the explanation text
 
 
 class VendorRisk(BaseModel):
@@ -22,6 +23,7 @@ class VendorRisk(BaseModel):
     evidence_ids: list[str] = Field(min_length=1)
     action: str = Field(min_length=1)  # one concrete next step for the reviewer
     rationale: str = Field(min_length=1)
+    text_source: Literal["model", "template"] = "template"  # who wrote action/rationale
 
 
 class Report(BaseModel):

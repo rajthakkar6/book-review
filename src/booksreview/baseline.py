@@ -60,3 +60,23 @@ def baseline_vendor_risks(records_by_detector) -> list[VendorRisk]:
             action=f"Review all {len(ids)} flagged items for {vid} together before approving further payments.",
             rationale=f"{vid} has anomalies of {len(types)} different types: {', '.join(types)}."))
     return sorted(out, key=lambda r: (-len(r.finding_types), r.vendor_id))
+
+
+def vendor_risks_from_findings(findings: list[Finding], records: dict[str, dict[str, dict]]) -> list[VendorRisk]:
+    """Code-built vendor-risk skeleton (vendors, level, types, evidence, order) from the validated findings.
+    Text fields are template placeholders; the model may replace them with better wording."""
+    cited: dict[str, dict[str, dict]] = {}
+    for f in findings:
+        for eid in f.evidence_ids:
+            rec = records.get(f.type, {}).get(eid)
+            if rec:
+                cited.setdefault(f.type, {})[eid] = rec
+    return baseline_vendor_risks(cited)
+
+
+def finding_key(f: Finding, records: dict[str, dict[str, dict]]) -> tuple[str, str]:
+    """(type, id) a model explanation is keyed by: evidence_id, or cluster_id for payment_split."""
+    if f.type == "payment_split":
+        rec = records.get("payment_split", {}).get(f.evidence_ids[0], {})
+        return f.type, rec.get("detail", {}).get("cluster_id", f.evidence_ids[0])
+    return f.type, f.evidence_ids[0]

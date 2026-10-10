@@ -37,9 +37,9 @@ class OpenAILLM:
         self.model, self.client = model, client
 
     async def complete(self, messages, tools):
+        extra = {"reasoning_effort": config.REASONING_EFFORT} if config.REASONING_EFFORT else {}
         r = await self.client.chat.completions.create(
-            model=self.model, messages=messages, tools=tools or None,
-            reasoning_effort=config.REASONING_EFFORT)
+            model=self.model, messages=messages, tools=tools or None, **extra)
         m = r.choices[0].message
         calls = []
         for tc in m.tool_calls or []:

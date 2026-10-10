@@ -87,6 +87,7 @@ class SeenEvidence:
         self.ints: set[int] = set()
         self.paired: dict[str, int] = {}  # evidence_id -> amount_paise from detector records
         self.records: dict[str, dict[str, dict]] = {}  # detector -> evidence_id -> full record
+        self.detectors_run: dict[str, tuple[int, int]] = {}  # detector -> (total_found, returned)
 
     def add_tool_output(self, text: str):
         try:
@@ -99,6 +100,8 @@ class SeenEvidence:
             for x in o:
                 self._walk(x)
         elif isinstance(o, dict):
+            if isinstance(o.get("detector"), str) and isinstance(o.get("total_found"), int):
+                self.detectors_run[o["detector"]] = (o["total_found"], o.get("returned", o["total_found"]))
             if isinstance(o.get("evidence_id"), str) and isinstance(o.get("amount_paise"), int):
                 self.paired[o["evidence_id"]] = o["amount_paise"]
                 if isinstance(o.get("detector"), str):
@@ -176,4 +179,17 @@ def check_vendor_risks(risks: list[VendorRisk], findings: list[Finding], seen: S
         k = len(set(r.finding_types))
         if (k >= 3) != (r.risk == "high"):
             errors.append(f"vendor_risk {n}: risk must be 'high' for 3+ distinct types, 'medium' for 2 (got {k} types, {r.risk})")
+    return errors
+
+
+def check_clusters(findings: list[Finding], seen: SeenEvidence) -> list[str]:
+    """A payment_split finding must cite exactly the members of ONE detector cluster (no merging, no partial)."""
+    members: dict[str, set[str]] = {}
+    for eid, rec in seen.records.get("payment_split", {}).items():
+        members.setdefault(rec.get("detail", {}).get("cluster_id", eid), set()).add(eid)
+    errors = []
+    for n, f in enumerate(findings, 1):
+        if f.type == "payment_split" and set(f.evidence_ids) not in members.values() and members:
+            errors.append(f"finding {n}: payment_split must cite exactly the payments of ONE cluster_id "
+                          f"(one finding per cluster); {sorted(f.evidence_ids)} is not a single cluster")
     return errors

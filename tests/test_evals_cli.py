@@ -1,7 +1,7 @@
 import json
 
 from booksreview import db, detectors
-from booksreview.baseline import baseline_findings, baseline_vendor_risks
+from booksreview.baseline import baseline_findings, baseline_vendor_risks, finding_key
 from booksreview.cli import main
 from booksreview.llm import FakeLLM, LLMResponse, ToolCall
 from evals import run_evals as ev
@@ -51,32 +51,38 @@ def test_payment_split_findings_are_per_cluster(tmp_path):
 
 
 def test_live_eval_machinery_with_fake_llm(tmp_path):
-    """Perfect scripted agent: run all detectors, answer from the tool outputs."""
+    """Scripted agent that runs all detectors and explains every finding."""
     import re
 
-    def answer(messages):
-        fs = {}
+    def explain(messages):
+        recs = {}
         for m in messages:
             if m["role"] == "tool":
                 body = json.loads(re.search(r"<tool_output[^>]*>(.*)</tool_output>", m["content"], re.S).group(1))
-                fs[body["detector"]] = body["records"]
-        return LLMResponse(content=json.dumps({"findings": [f.model_dump() for f in baseline_findings(fs)],
-                                               "vendor_risks": [r.model_dump() for r in baseline_vendor_risks(fs)],
-                                               "summary": "ok"}), tokens=7)
+                recs[body["detector"]] = {r["evidence_id"]: r for r in body["records"]}
+        fs = baseline_findings(recs)
+        return LLMResponse(content=json.dumps({"explanations": [
+            {"type": f.type, "id": finding_key(f, recs)[1], "explanation": f"Model: {f.evidence_ids[0]}"} for f in fs],
+            "summary": "ok"}), tokens=7)
+
+    def notes(messages):
+        vs = re.findall(r"^- (V\d+) \[", messages[-1]["content"], re.M)
+        return LLMResponse(content=json.dumps({"vendor_notes": [
+            {"vendor_id": v, "action": f"Hold {v}", "rationale": "x"} for v in vs]}), tokens=3)
 
     def make():
         calls = [ToolCall(f"c{i}", "run_detector", {"name": n}) for i, n in enumerate(detectors.DETECTORS)]
-        return FakeLLM([LLMResponse(tool_calls=calls, tokens=5), answer])
+        return FakeLLM([LLMResponse(tool_calls=calls, tokens=5), explain, notes])
     r = ev.live_eval(make, scenarios=("standard", "clean"), seeds=(7,), runs=2, workdir=tmp_path)
     s, c = r["scenarios"]["standard"], r["scenarios"]["clean"]
     assert s["findings"]["agent"]["overall"]["recall"] == 1.0 and s["rates"]["completed_ok"] == 1.0
     assert s["cost"]["mean_tool_calls"] == 5 and s["findings"]["baseline"]["overall"]["recall"] == 1.0
+    assert s["explanations"]["model_coverage"] == 1.0 and s["explanations"]["partial_runs"] == 0
     assert s["vendor_risks"]["agent"]["vendor_recall"] == 1.0 and s["vendor_risks"]["agent"]["order_accuracy"] == 1.0
-    assert s["vendor_risks"]["agent"]["risk_level_accuracy"] == 1.0 and s["vendor_risks"]["agent"]["evidence_recall"] == 1.0
     assert c["findings"]["agent"]["overall"]["false_positive_ids"] == 0
 
 
-def test_budget_stop_returns_partial_findings(tmp_path):
+def test_budget_stop_returns_complete_code_built_findings(tmp_path):
     import asyncio
 
     from booksreview.agent import run_review
@@ -85,8 +91,8 @@ def test_budget_stop_returns_partial_findings(tmp_path):
     llm = FakeLLM([LLMResponse(tool_calls=[ToolCall("a", "run_detector", {"name": "gst_mismatch"})], tokens=1),
                    LLMResponse(tool_calls=[ToolCall("b", "list_detectors", {})], tokens=1)])
     report, _ = asyncio.run(run_review(llm, ledger, budget=Budget(max_tool_calls=1)))
-    assert report.status == "budget_exceeded" and report.partial and len(report.findings) == 8
-    assert ev.aggregate([ev.score_findings(report.findings, truth)])["gst_mismatch"]["recall"] == 1.0
+    assert report.status == "budget_exceeded" and report.partial and len(report.findings) == 35
+    assert ev.aggregate([ev.score_findings(report.findings, truth)])["overall"]["recall"] == 1.0
 
 
 def test_compound_vendors_are_seeded_and_baseline_scores_perfectly(tmp_path):
@@ -101,18 +107,20 @@ def test_compound_vendors_are_seeded_and_baseline_scores_perfectly(tmp_path):
     assert ev.aggregate_vr([ev.score_vendor_risks([], vt)])["vendor_recall"] == 0.0
 
 
-def test_number_support_flags_invented_numbers(tmp_path):
-    from booksreview.schemas import Finding
-    from booksreview.schemas import Report
+def test_number_support_flags_invented_numbers_in_model_text_only(tmp_path):
+    from booksreview.schemas import Finding, Report
     ledger, _ = ev.prepare("standard", 7, tmp_path)
     allowed = ev.allowed_numbers(ledger)
-    conn = db.connect_ro(ledger)
-    r = detectors.run(conn, "gst_mismatch")[0]
-    ok = Finding(type="gst_mismatch", evidence_ids=[r["evidence_id"]], amount_paise=r["amount_paise"],
-                 explanation=f"GST off by {r['amount_paise']:,} paise on {r['evidence_id']} (V005).")
-    bad = ok.model_copy(update={"explanation": "GST off by 987654321 paise."})
-    assert ev.number_support(Report(status="ok", findings=[ok]), allowed)["unsupported"] == 0
-    assert ev.number_support(Report(status="ok", findings=[bad]), allowed)["unsupported"] == 1
+    r = detectors.run(db.connect_ro(ledger), "gst_mismatch")[0]
+    base = dict(type="gst_mismatch", evidence_ids=[r["evidence_id"]], amount_paise=r["amount_paise"])
+    ok = Finding(**base, explanation=f"GST off by {r['amount_paise']:,} paise on {r['evidence_id']} (V005).",
+                 explanation_source="model")
+    bad = Finding(**base, explanation="GST off by 987654321 paise.", explanation_source="model")
+    template = Finding(**base, explanation="GST off by 987654321 paise.", explanation_source="template")
+    rep = lambda f: ev.number_support(Report(status="ok", findings=[f]), allowed)  # noqa: E731
+    assert rep(ok)["unsupported"] == 0 and rep(ok)["checked"] == 1
+    assert rep(bad)["unsupported"] == 1
+    assert rep(template)["checked"] == 0  # template text is code-written, so it is not graded
 
 
 def test_injection_text_reaches_the_model_in_the_eval(tmp_path):

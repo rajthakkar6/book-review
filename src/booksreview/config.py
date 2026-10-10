@@ -46,9 +46,9 @@ MAX_REPAIRS = 1
 # Override without code changes: BOOKSREVIEW_MODEL=<id>. For a non-OpenAI endpoint that speaks the
 # OpenAI chat API, set OPENAI_BASE_URL (read by the openai SDK) and OPENAI_API_KEY.
 MODEL_NAME = os.environ.get("BOOKSREVIEW_MODEL", "luna-6")
-# chat.completions rejects function tools with reasoning on for this model. "none" works; to use
-# reasoning with tools, the client would need to move to the Responses API.
-REASONING_EFFORT = os.environ.get("BOOKSREVIEW_REASONING_EFFORT", "none")
+# Sent only when set; non-reasoning models (e.g. gpt-4o-mini) reject the parameter. gpt-6-luna needs "none"
+# for function tools on chat.completions (set BOOKSREVIEW_REASONING_EFFORT=none).
+REASONING_EFFORT = os.environ.get("BOOKSREVIEW_REASONING_EFFORT", "")
 
 # Tracing: full request/response log per run, for manual review. Set BOOKSREVIEW_TRACE=0 to disable.
 TRACE_ENABLED = os.environ.get("BOOKSREVIEW_TRACE", "1") != "0"

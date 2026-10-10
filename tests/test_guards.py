@@ -3,7 +3,7 @@ import json
 import pytest
 
 from booksreview.guards import (ALLOWED_TOOLS, Budget, BudgetExceeded, SeenEvidence, check_grounded,
-                                check_vendor_risks, truncate_output)
+                                check_vendor_risks, check_clusters, truncate_output)
 from booksreview.schemas import Finding, VendorRisk
 
 
@@ -175,3 +175,18 @@ def test_vendor_risk_order_rule():
     s = seen_from(recs)
     assert check_vendor_risks([v2, v1], fs, s) == []  # 3 types before 2
     assert any("order is wrong" in e for e in check_vendor_risks([v1, v2], fs, s))
+
+
+PS = {"records": [
+    {"detector": "payment_split", "evidence_id": e, "amount_paise": 10, "detail": {"vendor_id": "V1", "cluster_id": c}}
+    for e, c in [("PAY-1", "A"), ("PAY-2", "A"), ("PAY-3", "B"), ("PAY-4", "B")]]}
+
+
+def test_payment_split_must_match_exactly_one_cluster():
+    s = seen_from(PS)
+    ok = [f(["PAY-1", "PAY-2"], 20, "payment_split"), f(["PAY-3", "PAY-4"], 20, "payment_split")]
+    assert check_clusters(ok, s) == []
+    merged = [f(["PAY-1", "PAY-2", "PAY-3", "PAY-4"], 40, "payment_split")]
+    partial = [f(["PAY-1"], 10, "payment_split")]
+    cross = [f(["PAY-2", "PAY-3"], 20, "payment_split")]
+    assert all(check_clusters(x, s) for x in (merged, partial, cross))
